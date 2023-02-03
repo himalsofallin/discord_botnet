@@ -17,7 +17,7 @@ This project only for learning purpose. I'm not responsible for any damage cause
     What's the meaning of client side?
     Client side is the side that will be used to receive the message from the server.
 
-    COMING SOON!
+    CONVERT TO INSTALLER AND SEND TO COW!
 
 Don't forget to follow me on github and star this project if you like it.
 All rights reserved to @b1bxonty
