@@ -7,7 +7,7 @@ This project only for learning purpose. I'm not responsible for any damage cause
     Server side is the side that will be used to send the message to the target.
 
     How to use?
-       1. Edit the config.json file
+       1. Edit the config.py file
        2. Run the boss.py file
        3. Wait for the target to install the client side
 
