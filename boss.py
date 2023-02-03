@@ -15,8 +15,8 @@ from discord.ext.commands import Bot, Context
 
 
 #get jobs from ftp server and save variable jobs
-ftp = ftplib.FTP('ftp.example.com', 'username', 'password')
-
+ftp = ftplib.FTP(os.getenv("ftp_host"))
+ftp.login(user=os.getenv("ftp_user"), passwd = os.getenv("ftp_password"))
 #check if file exists
 if "jobs.json" in ftp.nlst():
     #get file
@@ -96,3 +96,6 @@ async def delete_ddos_attack(ctx : Context, target):
 
 
 bot.run(os.getenv('discord_token'))
+
+
+    
